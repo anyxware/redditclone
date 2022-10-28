@@ -1,0 +1,50 @@
+version: '1.0'
+
+services:
+  mysql:
+    image: mysql
+    env_file: .env
+
+  mongo:
+    image: mongo
+    env_file: .env
+
+  redis:
+    image: redis
+
+  migration:
+    build: ./
+    command: make migration
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+    env_file: .env
+    depends_on:
+      mysql:
+        condition: service_started
+
+  redditclone:
+    build: ./
+    environment:
+      API_HOST: "0.0.0.0"
+      API_PORT: 8000
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MONGO_HOST: mongo
+      MONGO_PORT: 27017
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    env_file: .env
+    ports:
+      - 8000:8000
+    depends_on:
+      mysql:
+        condition: service_started
+      mongo:
+        condition: service_started
+      redis:
+        condition: service_started
+      migration:
+        condition: service_completed_successfully
+    volumes:
+      - ./:/usr/src/app/

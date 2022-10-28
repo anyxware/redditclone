@@ -1,0 +1,9 @@
+mysql:
+  max_open_connections: 10
+
+migration:
+  attempts: 10
+  timeout: 1
+
+mongo:
+  collection_name: "posts"

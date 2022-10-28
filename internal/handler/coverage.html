@@ -1,0 +1,1045 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>handler: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">redditclone/internal/handler/auth.go (73.4%)</option>
+				
+				<option value="file1">redditclone/internal/handler/errors.go (76.5%)</option>
+				
+				<option value="file2">redditclone/internal/handler/handler.go (12.9%)</option>
+				
+				<option value="file3">redditclone/internal/handler/middleware.go (0.0%)</option>
+				
+				<option value="file4">redditclone/internal/handler/posts.go (86.7%)</option>
+				
+				<option value="file5">redditclone/internal/handler/validator.go (97.4%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package handler
+
+import (
+        "encoding/json"
+        "fmt"
+        "net/http"
+        "redditclone/internal/model"
+        "redditclone/internal/model/customerr"
+        "redditclone/pkg/token"
+)
+
+func writeToken(w http.ResponseWriter, t string) error <span class="cov8" title="1">{
+        resp := []byte(fmt.Sprintf("{\"token\": \"%s\"}", t))
+        if _, err := w.Write(resp); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+func (h *Handler) signUp(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        var input map[string]string
+        err := json.NewDecoder(r.Body).Decode(&amp;input)
+        if err != nil </span><span class="cov8" title="1">{
+                h.handleError(w, customerr.RequestNotParsed{Message: err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">if errs := h.validator.ValidateBody("Credential", input); len(errs) != 0 </span><span class="cov8" title="1">{
+                h.handleValidationErrors(w, errs)
+                return
+        }</span>
+
+        <span class="cov8" title="1">cred := model.Credential{Username: input["username"], Password: input["password"]}
+
+        usr, err := h.service.RegisterUser(cred)
+        if err != nil </span><span class="cov8" title="1">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">authUser := token.AuthUser{ID: usr.ID, Username: usr.Username}
+        t, err := h.signer.CreateToken(authUser)
+        if err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+        <span class="cov8" title="1">serialized, err := json.Marshal(authUser)
+        if err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+        <span class="cov8" title="1">if err = h.sessions.AddCookie(t, serialized); err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err = writeToken(w, t); err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.Header().Set("Content-Type", "application/json; charset=utf-8")
+        w.WriteHeader(http.StatusCreated)</span>
+}
+
+func (h *Handler) signIn(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        var input map[string]string
+        err := json.NewDecoder(r.Body).Decode(&amp;input)
+        if err != nil </span><span class="cov8" title="1">{
+                h.handleError(w, customerr.RequestNotParsed{Message: err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">if errs := h.validator.ValidateBody("Credential", input); len(errs) != 0 </span><span class="cov8" title="1">{
+                h.handleValidationErrors(w, errs)
+                return
+        }</span>
+
+        <span class="cov8" title="1">cred := model.Credential{Username: input["username"], Password: input["password"]}
+
+        usr, err := h.service.LoginUser(cred)
+        if err != nil </span><span class="cov8" title="1">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">authUser := token.AuthUser{ID: usr.ID, Username: usr.Username}
+        t, err := h.signer.CreateToken(authUser)
+        if err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+        <span class="cov8" title="1">serialized, err := json.Marshal(authUser)
+        if err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+        <span class="cov8" title="1">if err = h.sessions.AddCookie(t, serialized); err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err = writeToken(w, t); err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.Header().Set("Content-Type", "application/json; charset=utf-8")
+        w.WriteHeader(http.StatusCreated)</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package handler
+
+import (
+        "github.com/sirupsen/logrus"
+        "net/http"
+        "redditclone/internal/model/customerr"
+        "redditclone/pkg/httperr"
+        "redditclone/pkg/httpvalidator"
+)
+
+func (h *Handler) handleValidationErrors(w http.ResponseWriter, errs []httpvalidator.ValidationError) <span class="cov8" title="1">{
+        res := httperr.UnprocessableEntity{Errors: make([]httperr.UnprocessableEntityItem, 0)}
+
+        for _, err := range errs </span><span class="cov8" title="1">{
+                res.Errors = append(res.Errors, httperr.UnprocessableEntityItem{
+                        Location: err.Location,
+                        Param:    err.Param,
+                        Value:    err.Value,
+                        Message:  err.Message,
+                })
+                logrus.Errorln(err.Error())
+        }</span>
+
+        <span class="cov8" title="1">httperr.HandleError(w, res)</span>
+}
+
+func (h *Handler) handleError(w http.ResponseWriter, err error) <span class="cov8" title="1">{
+        switch err.(type) </span>{
+        case customerr.UserAlreadyExists:<span class="cov8" title="1">
+                httperr.HandleError(w, httperr.UnprocessableEntity{
+                        Errors: []httperr.UnprocessableEntityItem{{
+                                Location: "body",
+                                Param:    "username",
+                                Value:    err.(customerr.UserAlreadyExists).Username,
+                                Message:  "already exists",
+                        }},
+                })</span>
+        case customerr.WrongCredential:<span class="cov8" title="1">
+                httperr.HandleError(w, httperr.Unauthorized{Message: "wrong credential"})</span>
+        case customerr.Unauthorized:<span class="cov0" title="0">
+                httperr.HandleError(w, httperr.Unauthorized{Message: "user unauthorized"})</span>
+        case customerr.UserNotFoundByID:<span class="cov0" title="0">
+                httperr.HandleError(w, httperr.NotFound{Message: "user not found"})</span>
+        case customerr.UserNotFoundByUsername:<span class="cov0" title="0">
+                httperr.HandleError(w, httperr.NotFound{Message: "user not found"})</span>
+        case customerr.PostNotFoundByID:<span class="cov8" title="1">
+                httperr.HandleError(w, httperr.NotFound{Message: "post not found"})</span>
+        case customerr.CommentNotFoundByID:<span class="cov8" title="1">
+                httperr.HandleError(w, httperr.NotFound{Message: "comment not found"})</span>
+        case customerr.NotOwner:<span class="cov0" title="0">
+                httperr.HandleError(w, httperr.Forbidden{Message: "user not own this resource"})</span>
+        case customerr.RequestNotParsed:<span class="cov8" title="1">
+                httperr.HandleError(w, httperr.BadRequest{Message: "bad request"})</span>
+        default:<span class="cov8" title="1">
+                httperr.HandleError(w, httperr.InternalError{Message: "internal error"})</span>
+        }
+
+        <span class="cov8" title="1">logrus.Errorln(err)</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package handler
+
+import (
+        "github.com/gorilla/mux"
+        "net/http"
+        "redditclone/internal/model"
+        "redditclone/pkg/cookie"
+        "redditclone/pkg/httpvalidator"
+        "redditclone/pkg/token"
+)
+
+const (
+        authorizationHeader = "Authorization"
+)
+
+type authService interface {
+        RegisterUser(cred model.Credential) (model.User, error)
+        LoginUser(cred model.Credential) (model.User, error)
+}
+
+type postsService interface {
+        GetAllPosts() ([]model.Post, error)
+        GetPostsByCategory(category string) ([]model.Post, error)
+        GetPostsByAuthor(username string) ([]model.Post, error)
+        CreateTextPost(input model.TextPostInput, usr model.User) (model.Post, error)
+        CreateURLPost(input model.URLPostInput, usr model.User) (model.Post, error)
+        GetPostByID(postID string) (model.Post, error)
+        DeletePost(postID string, usr model.User) error
+        AddComment(postID string, commentText string, usr model.User) (model.Post, error)
+        DeleteComment(postID, commentID string, usr model.User) (model.Post, error)
+        UpvotePost(postID string, usr model.User) (model.Post, error)
+        DownvotePost(postID string, usr model.User) (model.Post, error)
+        UnvotePost(postID string, usr model.User) (model.Post, error)
+}
+
+type usersService interface {
+        GetUserByID(userID string) (model.User, error)
+}
+
+type appService interface {
+        authService
+        postsService
+        usersService
+}
+
+type Handler struct {
+        sessions  cookie.Manager
+        signer    token.Signer
+        validator httpvalidator.Validator
+        service   appService
+}
+
+func NewHandler(signer token.Signer, sessions cookie.Manager, service appService) *Handler <span class="cov8" title="1">{
+        validator := httpvalidator.NewValidator()
+        handler := &amp;Handler{signer: signer, sessions: sessions, validator: validator, service: service}
+        handler.initValidator()
+        return handler
+}</span>
+
+func (h *Handler) CreateRouter() http.Handler <span class="cov0" title="0">{
+        router := mux.NewRouter()
+
+        router.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) </span><span class="cov0" title="0">{
+                http.ServeFile(w, r, "static/hamster.jpg")
+        }</span>)
+        <span class="cov0" title="0">fs := http.FileServer(http.Dir("./static/html/"))
+        router.Handle("/", fs)
+        fs = http.FileServer(http.Dir("./static/"))
+        router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", fs))
+
+        router.HandleFunc("/api/register", h.signUp).Methods("POST")
+        router.HandleFunc("/api/login", h.signIn).Methods("POST")
+
+        router.HandleFunc("/api/posts/", h.getAllPosts).Methods("GET")
+        router.HandleFunc("/api/posts/{category}", h.getPostsByCategory).Methods("GET")
+        router.HandleFunc("/api/post/{post_id}", h.getPost).Methods("GET")
+
+        routerForAuthorized := router.PathPrefix("/api").Subrouter()
+        routerForAuthorized.Use(h.authorizeMiddleware)
+        routerForAuthorized.HandleFunc("/posts", h.createPost).Methods("POST")
+        routerForAuthorized.HandleFunc("/post/{post_id}", h.deletePost).Methods("DELETE")
+        routerForAuthorized.HandleFunc("/post/{post_id}", h.createComment).Methods("POST")
+        routerForAuthorized.HandleFunc("/post/{post_id}/{comment_id}", h.deleteComment).Methods("DELETE")
+        routerForAuthorized.HandleFunc("/post/{post_id}/upvote", h.upvotePost).Methods("GET")
+        routerForAuthorized.HandleFunc("/post/{post_id}/downvote", h.downvotePost).Methods("GET")
+        routerForAuthorized.HandleFunc("/post/{post_id}/unvote", h.unvotePost).Methods("GET")
+
+        router.HandleFunc("/api/user/{username}", h.getPostsByUsername).Methods("GET")
+
+        router.UseEncodedPath().NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov0" title="0">{
+                http.ServeFile(w, r, "static/html/index.html")
+        }</span>)
+
+        <span class="cov0" title="0">router.Use(h.recoverPanicMiddleware)
+        router.Use(h.accessLogMiddleware)
+
+        return router</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package handler
+
+import (
+        "context"
+        "encoding/json"
+        "errors"
+        "github.com/sirupsen/logrus"
+        "net/http"
+        "redditclone/internal/model/customerr"
+        "redditclone/pkg/token"
+        "strings"
+)
+
+type loggedWriter struct {
+        statusCode     int
+        data           []byte
+        responseWriter http.ResponseWriter
+}
+
+func (w *loggedWriter) WriteHeader(statusCode int) <span class="cov0" title="0">{
+        w.statusCode = statusCode
+        w.responseWriter.WriteHeader(statusCode)
+}</span>
+
+func (w *loggedWriter) Write(data []byte) (int, error) <span class="cov0" title="0">{
+        w.data = data
+        return w.responseWriter.Write(data)
+}</span>
+
+func (w *loggedWriter) Header() http.Header <span class="cov0" title="0">{
+        return w.responseWriter.Header()
+}</span>
+
+func (h *Handler) accessLogMiddleware(next http.Handler) http.Handler <span class="cov0" title="0">{
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov0" title="0">{
+                loggedWriter := &amp;loggedWriter{responseWriter: w}
+                next.ServeHTTP(loggedWriter, r)
+                logrus.Infoln(r.Method, r.URL.Path, loggedWriter.statusCode)
+                logrus.Debugln(string(loggedWriter.data))
+        }</span>)
+}
+
+func (h *Handler) getToken(r *http.Request) (string, error) <span class="cov0" title="0">{
+        header := r.Header.Get(authorizationHeader)
+        if header == "" </span><span class="cov0" title="0">{
+                return "", errors.New("empty auth header")
+        }</span>
+
+        <span class="cov0" title="0">headerParts := strings.Split(header, " ")
+        if len(headerParts) != 2 </span><span class="cov0" title="0">{
+                return "", errors.New("invalid auth header")
+        }</span>
+
+        <span class="cov0" title="0">return headerParts[1], nil</span>
+}
+
+func (h *Handler) getAuthUserFromJWT(t string) (token.AuthUser, error) <span class="cov0" title="0">{
+        return h.signer.ParseToken(t)
+}</span>
+
+func (h *Handler) getAuthUserFromCookie(t string) (token.AuthUser, error) <span class="cov0" title="0">{
+        serializedUser, err := h.sessions.GetCookie(t)
+        if err != nil </span><span class="cov0" title="0">{
+                return token.AuthUser{}, err
+        }</span>
+        <span class="cov0" title="0">var authUser token.AuthUser
+        err = json.Unmarshal(serializedUser, &amp;authUser)
+        return authUser, err</span>
+}
+
+func (h *Handler) authorizeMiddleware(next http.Handler) http.Handler <span class="cov0" title="0">{
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov0" title="0">{
+                t, err := h.getToken(r)
+                if err != nil </span><span class="cov0" title="0">{
+                        h.handleError(w, customerr.Unauthorized{Message: err.Error()})
+                        return
+                }</span>
+
+                <span class="cov0" title="0">authUser, err := h.getAuthUserFromCookie(t)
+                if err != nil </span><span class="cov0" title="0">{
+                        h.handleError(w, customerr.Unauthorized{Message: err.Error()})
+                }</span>
+
+                <span class="cov0" title="0">usr, err := h.service.GetUserByID(authUser.ID)
+                if err != nil </span><span class="cov0" title="0">{
+                        if _, ok := err.(customerr.UserNotFoundByID); ok </span><span class="cov0" title="0">{
+                                h.handleError(w, customerr.Unauthorized{Message: err.Error()})
+                        }</span>
+                        <span class="cov0" title="0">h.handleError(w, err)
+                        return</span>
+                }
+
+                <span class="cov0" title="0">ctx := context.WithValue(r.Context(), "user", usr)
+                next.ServeHTTP(w, r.WithContext(ctx))</span>
+        })
+}
+
+func (h *Handler) recoverPanicMiddleware(next http.Handler) http.Handler <span class="cov0" title="0">{
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) </span><span class="cov0" title="0">{
+                defer func() </span><span class="cov0" title="0">{
+                        if rec := recover(); rec != nil </span><span class="cov0" title="0">{
+                                h.handleError(w, errors.New("panic detected"))
+                        }</span>
+                }()
+                <span class="cov0" title="0">next.ServeHTTP(w, r)</span>
+        })
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package handler
+
+import (
+        "encoding/json"
+        "fmt"
+        "github.com/gorilla/mux"
+        "net/http"
+        "redditclone/internal/model"
+        "redditclone/internal/model/customerr"
+)
+
+func writePosts(w http.ResponseWriter, posts []model.Post) error <span class="cov8" title="1">{
+        resp, err := json.Marshal(posts)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">if _, err = w.Write(resp); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+func writePost(w http.ResponseWriter, p model.Post) error <span class="cov8" title="1">{
+        resp, err := json.Marshal(p)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">if _, err = w.Write(resp); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+func (h *Handler) getAllPosts(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        posts, err := h.service.GetAllPosts()
+        if err != nil </span><span class="cov8" title="1">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err = writePosts(w, posts); err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.Header().Set("Content-Type", "application/json; charset=utf-8")
+        w.WriteHeader(http.StatusOK)</span>
+}
+
+func (h *Handler) getPostsByCategory(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        vars := mux.Vars(r)
+        category := vars["category"]
+
+        if errs := h.validator.ValidatePathValue("category", category); len(errs) != 0 </span><span class="cov8" title="1">{
+                h.handleValidationErrors(w, errs)
+                return
+        }</span>
+
+        <span class="cov8" title="1">posts, err := h.service.GetPostsByCategory(category)
+        if err != nil </span><span class="cov8" title="1">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err = writePosts(w, posts); err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.Header().Set("Content-Type", "application/json; charset=utf-8")
+        w.WriteHeader(http.StatusOK)</span>
+}
+
+func (h *Handler) getPostsByUsername(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        vars := mux.Vars(r)
+        username := vars["username"]
+
+        if errs := h.validator.ValidatePathValue("username", username); len(errs) != 0 </span><span class="cov8" title="1">{
+                h.handleValidationErrors(w, errs)
+                return
+        }</span>
+
+        <span class="cov8" title="1">posts, err := h.service.GetPostsByAuthor(username)
+        if err != nil </span><span class="cov8" title="1">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err = writePosts(w, posts); err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.Header().Set("Content-Type", "application/json; charset=utf-8")
+        w.WriteHeader(http.StatusOK)</span>
+}
+
+func (h *Handler) createPost(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        usr := r.Context().Value("user").(model.User)
+
+        var input map[string]string
+        err := json.NewDecoder(r.Body).Decode(&amp;input)
+        if err != nil </span><span class="cov8" title="1">{
+                h.handleError(w, customerr.RequestNotParsed{Message: err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">if errs := h.validator.ValidateBody("PostInput", input); len(errs) != 0 </span><span class="cov8" title="1">{
+                h.handleValidationErrors(w, errs)
+                return
+        }</span>
+
+        <span class="cov8" title="1">var validationSchema string
+        if input["type"] == "link" </span><span class="cov8" title="1">{
+                validationSchema = "URLPostInput"
+        }</span> else<span class="cov8" title="1"> if input["type"] == "text" </span><span class="cov8" title="1">{
+                validationSchema = "TextPostInput"
+        }</span>
+
+        <span class="cov8" title="1">if errs := h.validator.ValidateBody(validationSchema, input); len(errs) != 0 </span><span class="cov8" title="1">{
+                h.handleValidationErrors(w, errs)
+                return
+        }</span>
+
+        <span class="cov8" title="1">var newPost model.Post
+        if input["type"] == "link" </span><span class="cov8" title="1">{
+                newPost, err = h.service.CreateURLPost(model.URLPostInput{
+                        Category: input["category"],
+                        Type:     input["type"],
+                        Title:    input["title"],
+                        URL:      input["url"],
+                }, usr)
+        }</span> else<span class="cov8" title="1"> if input["type"] == "text" </span><span class="cov8" title="1">{
+                newPost, err = h.service.CreateTextPost(model.TextPostInput{
+                        Category: input["category"],
+                        Type:     input["type"],
+                        Title:    input["title"],
+                        Text:     input["text"],
+                }, usr)
+        }</span>
+
+        <span class="cov8" title="1">if err != nil </span><span class="cov8" title="1">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err = writePost(w, newPost); err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.Header().Set("Content-Type", "application/json; charset=utf-8")
+        w.WriteHeader(http.StatusOK)</span>
+}
+
+func (h *Handler) getPost(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        vars := mux.Vars(r)
+        postID := vars["post_id"]
+
+        if errs := h.validator.ValidatePathValue("post_id", postID); len(errs) != 0 </span><span class="cov8" title="1">{
+                h.handleValidationErrors(w, errs)
+                return
+        }</span>
+
+        <span class="cov8" title="1">existedPost, err := h.service.GetPostByID(postID)
+        if err != nil </span><span class="cov8" title="1">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err = writePost(w, existedPost); err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.Header().Set("Content-Type", "application/json; charset=utf-8")
+        w.WriteHeader(http.StatusOK)</span>
+}
+
+func (h *Handler) deletePost(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        usr := r.Context().Value("user").(model.User)
+
+        vars := mux.Vars(r)
+        postID := vars["post_id"]
+
+        if errs := h.validator.ValidatePathValue("post_id", postID); len(errs) != 0 </span><span class="cov8" title="1">{
+                h.handleValidationErrors(w, errs)
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err := h.service.DeletePost(postID, usr); err != nil </span><span class="cov8" title="1">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">resp := []byte(fmt.Sprintf("{\"message\": \"success\"}"))
+        if _, err := w.Write(resp); err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.Header().Set("Content-Type", "application/json; charset=utf-8")
+        w.WriteHeader(http.StatusOK)</span>
+}
+
+func (h *Handler) createComment(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        usr := r.Context().Value("user").(model.User)
+
+        vars := mux.Vars(r)
+        postID := vars["post_id"]
+
+        if errs := h.validator.ValidatePathValue("post_id", postID); len(errs) != 0 </span><span class="cov8" title="1">{
+                h.handleValidationErrors(w, errs)
+                return
+        }</span>
+
+        <span class="cov8" title="1">var input map[string]string
+        err := json.NewDecoder(r.Body).Decode(&amp;input)
+        if err != nil </span><span class="cov8" title="1">{
+                h.handleError(w, customerr.RequestNotParsed{Message: err.Error()})
+                return
+        }</span>
+
+        <span class="cov8" title="1">if errs := h.validator.ValidateBody("Comment", input); len(errs) != 0 </span><span class="cov8" title="1">{
+                h.handleValidationErrors(w, errs)
+                return
+        }</span>
+
+        <span class="cov8" title="1">comment := input["comment"]
+
+        existedPost, err := h.service.AddComment(postID, comment, usr)
+        if err != nil </span><span class="cov8" title="1">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err = writePost(w, existedPost); err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.Header().Set("Content-Type", "application/json; charset=utf-8")
+        w.WriteHeader(http.StatusOK)</span>
+}
+
+func (h *Handler) deleteComment(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        usr := r.Context().Value("user").(model.User)
+
+        vars := mux.Vars(r)
+        postID := vars["post_id"]
+        commentID := vars["comment_id"]
+
+        postIDValidationErrs := h.validator.ValidatePathValue("post_id", postID)
+        commentIDValidationErrs := h.validator.ValidatePathValue("comment_id", commentID)
+        if errs := append(postIDValidationErrs, commentIDValidationErrs...); len(errs) != 0 </span><span class="cov8" title="1">{
+                h.handleValidationErrors(w, errs)
+                return
+        }</span>
+
+        <span class="cov8" title="1">existedPost, err := h.service.DeleteComment(postID, commentID, usr)
+        if err != nil </span><span class="cov8" title="1">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err = writePost(w, existedPost); err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.Header().Set("Content-Type", "application/json; charset=utf-8")
+        w.WriteHeader(http.StatusOK)</span>
+}
+
+func (h *Handler) upvotePost(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        usr := r.Context().Value("user").(model.User)
+
+        vars := mux.Vars(r)
+        postID := vars["post_id"]
+
+        if errs := h.validator.ValidatePathValue("post_id", postID); len(errs) != 0 </span><span class="cov8" title="1">{
+                h.handleValidationErrors(w, errs)
+                return
+        }</span>
+
+        <span class="cov8" title="1">existedPost, err := h.service.UpvotePost(postID, usr)
+        if err != nil </span><span class="cov8" title="1">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err = writePost(w, existedPost); err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.Header().Set("Content-Type", "application/json; charset=utf-8")
+        w.WriteHeader(http.StatusOK)</span>
+}
+
+func (h *Handler) downvotePost(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        usr := r.Context().Value("user").(model.User)
+
+        vars := mux.Vars(r)
+        postID := vars["post_id"]
+
+        if errs := h.validator.ValidatePathValue("post_id", postID); len(errs) != 0 </span><span class="cov8" title="1">{
+                h.handleValidationErrors(w, errs)
+                return
+        }</span>
+
+        <span class="cov8" title="1">existedPost, err := h.service.DownvotePost(postID, usr)
+        if err != nil </span><span class="cov8" title="1">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err = writePost(w, existedPost); err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.Header().Set("Content-Type", "application/json; charset=utf-8")
+        w.WriteHeader(http.StatusOK)</span>
+}
+
+func (h *Handler) unvotePost(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        usr := r.Context().Value("user").(model.User)
+
+        vars := mux.Vars(r)
+        postID := vars["post_id"]
+
+        if errs := h.validator.ValidatePathValue("post_id", postID); len(errs) != 0 </span><span class="cov8" title="1">{
+                h.handleValidationErrors(w, errs)
+                return
+        }</span>
+
+        <span class="cov8" title="1">existedPost, err := h.service.UnvotePost(postID, usr)
+        if err != nil </span><span class="cov8" title="1">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err = writePost(w, existedPost); err != nil </span><span class="cov0" title="0">{
+                h.handleError(w, err)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.Header().Set("Content-Type", "application/json; charset=utf-8")
+        w.WriteHeader(http.StatusOK)</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package handler
+
+import (
+        "redditclone/pkg/hexid"
+        "redditclone/pkg/httpvalidator"
+)
+
+var (
+        categories = [...]string{"music", "funny", "videos", "programming", "news", "fashion"}
+)
+
+func (h *Handler) initValidator() <span class="cov8" title="1">{
+        postInputTmpl := httpvalidator.RequestBody{
+                Fields: httpvalidator.Fields{
+                        "category": httpvalidator.BodyField{
+                                Required: true,
+                                Rules: []httpvalidator.Rule{
+                                        {
+                                                Description: "category must has specific type",
+                                                Validate: func(category string) bool </span><span class="cov8" title="1">{
+                                                        for _, existedCategory := range categories </span><span class="cov8" title="1">{
+                                                                if existedCategory == category </span><span class="cov8" title="1">{
+                                                                        return true
+                                                                }</span>
+                                                        }
+                                                        <span class="cov8" title="1">return false</span>
+                                                },
+                                        },
+                                },
+                        },
+                        "title": httpvalidator.BodyField{
+                                Required: true,
+                                Rules: []httpvalidator.Rule{
+                                        {
+                                                Description: "title must be a non-empty string",
+                                                Validate: func(title string) bool <span class="cov8" title="1">{
+                                                        return len(title) &gt; 0
+                                                }</span>,
+                                        },
+                                },
+                        },
+                        "type": httpvalidator.BodyField{
+                                Required: true,
+                                Rules: []httpvalidator.Rule{
+                                        {
+                                                Description: "type must be a text or a link",
+                                                Validate: func(postType string) bool <span class="cov8" title="1">{
+                                                        return postType == "text" || postType == "link"
+                                                }</span>,
+                                        },
+                                },
+                        },
+                },
+        }
+
+        <span class="cov8" title="1">textPostInputTmpl := httpvalidator.RequestBody{
+                Fields: httpvalidator.Fields{
+                        "text": httpvalidator.BodyField{
+                                Required: true,
+                                Rules: []httpvalidator.Rule{
+                                        {
+                                                Description: "text must be a non-empty string",
+                                                Validate: func(text string) bool </span><span class="cov8" title="1">{
+                                                        return len(text) &gt; 0
+                                                }</span>,
+                                        },
+                                },
+                        },
+                },
+        }
+
+        <span class="cov8" title="1">urlPostInputTmpl := httpvalidator.RequestBody{
+                Fields: httpvalidator.Fields{
+                        "url": httpvalidator.BodyField{
+                                Required: true,
+                                Rules: []httpvalidator.Rule{
+                                        {
+                                                Description: "url must be a non-empty string",
+                                                Validate: func(url string) bool </span><span class="cov8" title="1">{
+                                                        return len(url) &gt; 0
+                                                }</span>,
+                                        },
+                                },
+                        },
+                },
+        }
+
+        <span class="cov8" title="1">credentialTmpl := httpvalidator.RequestBody{
+                Fields: httpvalidator.Fields{
+                        "username": httpvalidator.BodyField{
+                                Required: true,
+                                Rules: []httpvalidator.Rule{
+                                        {
+                                                Description: "username must be a non-empty string",
+                                                Validate: func(username string) bool </span><span class="cov8" title="1">{
+                                                        return len(username) &gt; 0
+                                                }</span>,
+                                        },
+                                },
+                        },
+                        "password": httpvalidator.BodyField{
+                                Required: true,
+                                Rules: []httpvalidator.Rule{
+                                        {
+                                                Description: "password must be a non-empty string",
+                                                Validate: func(password string) bool <span class="cov8" title="1">{
+                                                        return len(password) &gt; 0
+                                                }</span>,
+                                        },
+                                },
+                        },
+                },
+        }
+
+        <span class="cov8" title="1">commentTmpl := httpvalidator.RequestBody{
+                Fields: httpvalidator.Fields{
+                        "comment": httpvalidator.BodyField{
+                                Required: true,
+                                Rules: []httpvalidator.Rule{
+                                        {
+                                                Description: "comment must be a non-empty string",
+                                                Validate: func(comment string) bool </span><span class="cov8" title="1">{
+                                                        return len(comment) &gt; 0
+                                                }</span>,
+                                        },
+                                },
+                        },
+                },
+        }
+
+        <span class="cov8" title="1">h.validator.AddBodyTemplate("PostInput", postInputTmpl)
+        h.validator.AddBodyTemplate("TextPostInput", textPostInputTmpl)
+        h.validator.AddBodyTemplate("URLPostInput", urlPostInputTmpl)
+        h.validator.AddBodyTemplate("Credential", credentialTmpl)
+        h.validator.AddBodyTemplate("Comment", commentTmpl)
+
+        userIDValueRules := []httpvalidator.Rule{
+                {
+                        Description: "user_id must be a hexadecimal 24-symbols string",
+                        Validate: func(id string) bool </span><span class="cov0" title="0">{
+                                return hexid.Validate(id)
+                        }</span>,
+                },
+        }
+
+        <span class="cov8" title="1">postIDValueRules := []httpvalidator.Rule{
+                {
+                        Description: "post_id must be a hexadecimal 24-symbols string",
+                        Validate: func(id string) bool </span><span class="cov8" title="1">{
+                                return hexid.Validate(id)
+                        }</span>,
+                },
+        }
+
+        <span class="cov8" title="1">commentIDValueRules := []httpvalidator.Rule{
+                {
+                        Description: "comment_id must be a hexadecimal 24-symbols string",
+                        Validate: func(id string) bool </span><span class="cov8" title="1">{
+                                return hexid.Validate(id)
+                        }</span>,
+                },
+        }
+
+        <span class="cov8" title="1">categoryRules := []httpvalidator.Rule{
+                {
+                        Description: "category must has specific type",
+                        Validate: func(category string) bool </span><span class="cov8" title="1">{
+                                for _, existedCategory := range categories </span><span class="cov8" title="1">{
+                                        if existedCategory == category </span><span class="cov8" title="1">{
+                                                return true
+                                        }</span>
+                                }
+                                <span class="cov8" title="1">return false</span>
+                        },
+                },
+        }
+
+        <span class="cov8" title="1">usernameRules := []httpvalidator.Rule{
+                {
+                        Description: "username must be a non-empty string",
+                        Validate: func(username string) bool </span><span class="cov8" title="1">{
+                                return len(username) &gt; 0
+                        }</span>,
+                },
+        }
+
+        <span class="cov8" title="1">h.validator.AddPathValueTemplate("user_id", userIDValueRules)
+        h.validator.AddPathValueTemplate("post_id", postIDValueRules)
+        h.validator.AddPathValueTemplate("comment_id", commentIDValueRules)
+        h.validator.AddPathValueTemplate("category", categoryRules)
+        h.validator.AddPathValueTemplate("username", usernameRules)</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
